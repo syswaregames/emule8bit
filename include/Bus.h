@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint> 
 #include "olc6502.h"
-#include <array>
+#include "PPU2C02.h"
+#include "Cartridge.h"
 
 class Bus
 {
@@ -24,12 +26,26 @@ public:
     // Devices on bus
     olc6502 cpu;
 
-public:    
+    // The 2C02 Picture Processing Unit
+    PPU2C02 ppu;
+
+    // The Cartridge or "GamePak"
+	std::shared_ptr<Cartridge> cart;
+
     // Fake RAM for this part of the series
-    std::array<uint8_t, 64 * 1024> ram;
+    std::array<uint8_t, 2048> cpuRam; // 2kb RAM
 
 public:     
     // Bus Read & Write
-    void write(uint16_t addr, uint8_t data);
-    uint8_t read(uint16_t addr, bool bReadOnly);
+    void cpuWrite(uint16_t addr, uint8_t data);
+    uint8_t cpuRead(uint16_t addr, bool bReadOnly);
+
+    // System Interface 
+    void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
+    void reset();
+    void clock();
+
+private:
+	// A count of how many clocks have passed
+	uint32_t nSystemClockCounter = 0;
 };
