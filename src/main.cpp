@@ -14,6 +14,7 @@
 #include <fstream>
 
 #include "Bus.h" 
+#include "olc6502.h"
 
 #include <sys/stat.h>
     namespace _gfs
@@ -39,7 +40,12 @@ public:
 	Emule() { sAppName = "8-bit 6500 processor "; }
 
 	Bus nes;
+	std::shared_ptr<Cartridge> cart;
+
 	std::map<uint16_t, std::string> mapAsm;
+
+	bool bEmulationRun = false;
+	float fResidualTime = 0.0f;
 
 	std::string hex(uint32_t n, uint8_t d)
 	{
@@ -144,7 +150,7 @@ public:
 		*/
 
 	
-		
+		/*
 		// Convert hex string into bytes for RAM
 		std::stringstream ss;
 		ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
@@ -167,14 +173,76 @@ public:
 
 		// Reset
 		nes.cpu.reset();
+		*/
+
+		// Load the cartridge
+		cart = std::make_shared<Cartridge>("nestest.nes");
+
+		// Inser into NES
+		nes.insertCartridge(cart);
+
+		// Extract dissassembly
+		mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
+
+		// Reset
+		nes.reset();
+
 		return true;
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
-	{
+	{	
 		Clear(olc::DARK_BLUE);
 
+		if (bEmulationRun)
+		{
+			if (fResidualTime > 0.0f)
+				fResidualTime -= fElapsedTime;
+			else
+			{
+				fResidualTime += (1.0f / 60.0f) - fElapsedTime;
+				do { nes.clock(); } while (!nes.ppu.frame_complete);
+				nes.ppu.frame_complete = false;
+			}
+		}
+		else
+		{
+			// Emulate code step-by-step
+			if (GetKey(olc::Key::C).bPressed)
+			{
+				// Clock enough times to execute a whole CPU instruction
+				do { nes.clock(); } while (!nes.cpu.complete());
+				// CPU clock runs slower than system clock, so it may be
+				// complete for additional system clock cycles. Drain
+				// those out
+				do { nes.clock(); } while (nes.cpu.complete());
+			}
 
+			// Emulate one whole frame
+			if (GetKey(olc::Key::F).bPressed)
+			{
+				// Clock enough times to draw a single frame
+				do { nes.clock(); } while (!nes.ppu.frame_complete);
+				// Use residual clock cycles to complete current instruction
+				do { nes.clock(); } while (!nes.cpu.complete());
+				// Reset frame completion flag
+				nes.ppu.frame_complete = false;
+			}
+		}
+
+		if (GetKey(olc::Key::SPACE).bPressed) bEmulationRun = !bEmulationRun;
+		if (GetKey(olc::Key::R).bPressed) nes.reset();		
+
+		DrawCpu(516, 2);
+		DrawCode(516, 72, 26);
+
+		DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
+		return true;
+
+
+
+		/*
+		Runs for the board simulator
 		if (GetKey(olc::Key::SPACE).bPressed)
 		{
 			do
@@ -203,6 +271,7 @@ public:
 		DrawString(10, 370, "SPACE = Step Instruction    R = RESET    I = IRQ    N = NMI");
 
 		DrawString(10, 380, "Sysware Emule Nes 8 Bit ", olc::RED);
+		*/
 
 		return true;
 	}
@@ -216,7 +285,6 @@ int main(int argc, char *argv[])
 	std::cout << "Emule - NES Emulator" << std::endl;
 	std::cout << "Patrick Carvalho - 2022" << std::endl;	
 
-	
 	Emule emule;
 	emule.Construct(680, 480, 2, 2);
 	emule.Start();

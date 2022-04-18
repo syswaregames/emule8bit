@@ -2242,7 +2242,7 @@ namespace olc
     {
       nLastFPS = nFrameCount;
       fFrameTimer -= 1.0f;
-      std::string sTitle = "OneLoneCoder.com - Pixel Game Engine - " + sAppName + " - FPS: " + std::to_string(nFrameCount);
+      std::string sTitle = "Emule NES - " + sAppName + " - FPS: " + std::to_string(nFrameCount);
       platform->SetWindowTitle(sTitle);
       nFrameCount = 0;
     }
@@ -2392,12 +2392,14 @@ namespace olc
       glSwapIntervalEXT = nullptr;
       glSwapIntervalEXT = (glSwapInterval_t*)glXGetProcAddress((unsigned char*)"glXSwapIntervalEXT");
 
+      /*
       if (glSwapIntervalEXT == nullptr && !bVSYNC)
       {
         printf("NOTE: Could not disable VSYNC, glXSwapIntervalEXT() was not found!\n");
         printf("      Don't worry though, things will still work, it's just the\n");
         printf("      frame rate will be capped to your monitors refresh rate - javidx9\n");
       }
+      */
 
       if (glSwapIntervalEXT != nullptr && !bVSYNC)
         glSwapIntervalEXT(olc_Display, *olc_Window, 0);

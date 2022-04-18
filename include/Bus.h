@@ -32,8 +32,11 @@ public:
     // The Cartridge or "GamePak"
 	std::shared_ptr<Cartridge> cart;
 
-    // Fake RAM for this part of the series
-    std::array<uint8_t, 2048> cpuRam; // 2kb RAM
+    // CPU RAM 
+    // std::array<uint8_t, 2048> cpuRam; // 2kb RAM
+   
+    // Fake RAM for Board View Simulator
+	std::array<uint8_t, 64 * 1024> cpuRam; // 65kb
 
 public:     
     // Bus Read & Write

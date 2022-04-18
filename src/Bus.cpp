@@ -52,12 +52,20 @@ void Bus::cpuWrite(uint16_t addr, uint8_t data)
 		// use bitwise AND operation to mask the bottom 3 bits, 
 		// which is the equivalent of addr % 8.
 		ppu.cpuWrite(addr & 0x0007, data);
-	}		   
+	}		 
+
+    
+     // to Run the Board Simulator 
+    /*
+    if (addr >= 0x0000 && addr <= 0xFFFF)
+		cpuRam[addr] = data;  
+    */
 }
 
 
 uint8_t Bus::cpuRead(uint16_t addr, bool bReadOnly)
 {
+   
     uint8_t data = 0x00;	
 	
     if (cart->cpuRead(addr, data))
@@ -76,6 +84,14 @@ uint8_t Bus::cpuRead(uint16_t addr, bool bReadOnly)
 	}
 
 	return data;
+
+    // to Run the Board Simulator 
+    /*
+    if (addr >= 0x0000 && addr <= 0xFFFF)
+		return cpuRam[addr];
+
+	return 0x00;
+    */
 }
 
 void Bus::reset()
@@ -88,6 +104,7 @@ void Bus::clock()
 {
     ppu.clock();
 
+    // cpu clock runs 3x slower than ppu clock
     if (nSystemClockCounter % 3 == 0)
 	{
 		cpu.clock();

@@ -52,8 +52,8 @@ private:
 	olc::Sprite sprNameTable[2]    = { olc::Sprite(256, 240), olc::Sprite(256, 240) };
 	olc::Sprite sprPatternTable[2] = { olc::Sprite(128, 128), olc::Sprite(128, 128) };
 
-    int16_t scanline = 0;
-	int16_t cycle = 0;
+    int16_t scanline = 0; // Row on the screen
+	int16_t cycle = 0;    // Colum on the screen
 
     
     

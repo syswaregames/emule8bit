@@ -29,8 +29,12 @@ Cartridge::Cartridge(const std::string& sFileName)
 
 	std::ifstream ifs;
 	ifs.open(sFileName, std::ifstream::binary);
+
 	if (ifs.is_open())
 	{
+        std::cout << "File is Open" << std::endl;
+        
+        
 		// Read file header
 		ifs.read((char*)&header, sizeof(sHeader));
 
@@ -76,6 +80,10 @@ Cartridge::Cartridge(const std::string& sFileName)
 		bImageValid = true;
 		ifs.close();
 	}
+    else
+    {
+        std::cout << "File NOT Open" << std::endl;        
+    }
 
 }
 

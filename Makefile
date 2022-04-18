@@ -6,12 +6,13 @@
 
 # g++ -std=c++17 olcExampleProgram.cpp -I/opt/X11/include -L/opt/X11/lib -lX11 -lGL -lpng -o olcExampleProgram
 
+## -lpthread
 
 # define the Cpp compiler to use
 CXX = g++ -v
 
 # define any compile-time flags
-CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -I/opt/X11/include -L/opt/X11/lib -lX11 -lGL -lpng -lpthread
+CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -I/opt/X11/include -L/opt/X11/lib -lX11 -lGL -lpng 
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
