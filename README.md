@@ -5,7 +5,15 @@ Optimized for MACOSX
 8-bits
 Binary: 11111111 (FF)
 
+The only requirement is having X11 installed. X11 is no longer included in macOS, but X11 server and client libraries are available from the XQuartz project (see https://support.apple.com/en-us/HT201341).
+
+You can download X11 from https://www.xquartz.org/ and easily install it. Typical installation path is /usr/X11 and it contains includes and libraries for X11 and OpenGL.
+
+
 16kb Chunks = ROM -> Cpu maps reads
+
+
+
 
 PPU - Pallet
 
