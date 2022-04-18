@@ -1,3 +1,4 @@
+   
 /*
   olcPixelGameEngine.h
   +-------------------------------------------------------------+
@@ -204,7 +205,9 @@ int main()
 #else
   // C++17
   #if defined(__APPLE__)
+    
     // ivan: define _gfs by using stat, all the code checks is exists and file size.
+    /*
     #include <sys/stat.h>
     namespace _gfs
     {
@@ -218,6 +221,8 @@ int main()
         return rc == 0 ? stat_buf.st_size : -1;
       }
     }
+    */
+
   #else
     #include <filesystem>
     namespace _gfs = std::filesystem;
@@ -2237,7 +2242,7 @@ namespace olc
     {
       nLastFPS = nFrameCount;
       fFrameTimer -= 1.0f;
-      std::string sTitle = "Emule Nes - Sysware " + sAppName + " - FPS: " + std::to_string(nFrameCount);
+      std::string sTitle = "OneLoneCoder.com - Pixel Game Engine - " + sAppName + " - FPS: " + std::to_string(nFrameCount);
       platform->SetWindowTitle(sTitle);
       nFrameCount = 0;
     }
@@ -2385,7 +2390,14 @@ namespace olc
       glViewport(0, 0, gwa.width, gwa.height);
 
       glSwapIntervalEXT = nullptr;
-      glSwapIntervalEXT = (glSwapInterval_t*)glXGetProcAddress((unsigned char*)"glXSwapIntervalEXT");    
+      glSwapIntervalEXT = (glSwapInterval_t*)glXGetProcAddress((unsigned char*)"glXSwapIntervalEXT");
+
+      if (glSwapIntervalEXT == nullptr && !bVSYNC)
+      {
+        printf("NOTE: Could not disable VSYNC, glXSwapIntervalEXT() was not found!\n");
+        printf("      Don't worry though, things will still work, it's just the\n");
+        printf("      frame rate will be capped to your monitors refresh rate - javidx9\n");
+      }
 
       if (glSwapIntervalEXT != nullptr && !bVSYNC)
         glSwapIntervalEXT(olc_Display, *olc_Window, 0);
@@ -2838,7 +2850,7 @@ namespace olc
       XSetWMProtocols(olc_Display, olc_Window, &wmDelete, 1);
 
       XMapWindow(olc_Display, olc_Window);
-      XStoreName(olc_Display, olc_Window, "Emule Nes");
+      XStoreName(olc_Display, olc_Window, "OneLoneCoder.com - Pixel Game Engine");
 
       if (bFullScreen) // Thanks DragonEye, again :D
       {

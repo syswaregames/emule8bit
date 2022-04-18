@@ -7,15 +7,30 @@
     Patrick Carvalho - 2022
 */
 
+//#include "main.h"
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
+#include "Bus.h" 
+
+#include <sys/stat.h>
+    namespace _gfs
+    {
+      struct stat stat_buf;
+      bool exists(const std::string p) {
+        return (stat(p.c_str(), &stat_buf) == 0);
+      }
+
+      uintmax_t file_size(const std::string p) {
+        int rc = stat(p.c_str(), &stat_buf);
+        return rc == 0 ? stat_buf.st_size : -1;
+      }
+    }
 
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
-
-#include "Bus.h" 
 
 
 class Emule : public olc::PixelGameEngine
@@ -105,8 +120,9 @@ public:
 		}
 	}
 
-	bool OnUserCreate()
+	bool OnUserCreate() override
 	{
+		
 		// Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
 		/*
 			*=$8000
@@ -126,6 +142,8 @@ public:
 			NOP
 			NOP
 		*/
+
+	
 		
 		// Convert hex string into bytes for RAM
 		std::stringstream ss;
@@ -152,7 +170,7 @@ public:
 		return true;
 	}
 
-	bool OnUserUpdate(float fElapsedTime)
+	bool OnUserUpdate(float fElapsedTime) override
 	{
 		Clear(olc::DARK_BLUE);
 
@@ -198,7 +216,11 @@ int main(int argc, char *argv[])
 	std::cout << "Emule - NES Emulator" << std::endl;
 	std::cout << "Patrick Carvalho - 2022" << std::endl;	
 
+	
 	Emule emule;
 	emule.Construct(680, 480, 2, 2);
 	emule.Start();
+
+	return 0;
+	
 }
