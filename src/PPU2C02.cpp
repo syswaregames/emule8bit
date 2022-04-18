@@ -187,6 +187,11 @@ uint8_t PPU2C02::cpuRead(uint16_t addr, bool rdonly)
 	return data;
 }
 
+void PPU2C02::ConnectCartridge(const std::shared_ptr<Cartridge>& cartridge)
+{
+	this->cart = cartridge;
+}
+
 void PPU2C02::cpuWrite(uint16_t addr, uint8_t data)
 {
 	switch (addr)
@@ -255,6 +260,60 @@ void PPU2C02::cpuWrite(uint16_t addr, uint8_t data)
 		break;
 	}
 }
+
+
+
+void PPU2C02::ppuWrite(uint16_t addr, uint8_t data)
+{
+	addr &= 0x3FFF;
+
+	if (cart->ppuWrite(addr, data))
+	{
+
+	}
+	else if (addr >= 0x0000 && addr <= 0x1FFF)
+	{
+		tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF] = data;
+	}
+	else if (addr >= 0x2000 && addr <= 0x3EFF)
+	{
+		addr &= 0x0FFF;
+		if (cart->mirror == Cartridge::MIRROR::VERTICAL)
+		{
+			// Vertical
+			if (addr >= 0x0000 && addr <= 0x03FF)
+				tblName[0][addr & 0x03FF] = data;
+			if (addr >= 0x0400 && addr <= 0x07FF)
+				tblName[1][addr & 0x03FF] = data;
+			if (addr >= 0x0800 && addr <= 0x0BFF)
+				tblName[0][addr & 0x03FF] = data;
+			if (addr >= 0x0C00 && addr <= 0x0FFF)
+				tblName[1][addr & 0x03FF] = data;
+		}
+		else if (cart->mirror == Cartridge::MIRROR::HORIZONTAL)
+		{
+			// Horizontal
+			if (addr >= 0x0000 && addr <= 0x03FF)
+				tblName[0][addr & 0x03FF] = data;
+			if (addr >= 0x0400 && addr <= 0x07FF)
+				tblName[0][addr & 0x03FF] = data;
+			if (addr >= 0x0800 && addr <= 0x0BFF)
+				tblName[1][addr & 0x03FF] = data;
+			if (addr >= 0x0C00 && addr <= 0x0FFF)
+				tblName[1][addr & 0x03FF] = data;
+		}
+	}
+	else if (addr >= 0x3F00 && addr <= 0x3FFF)
+	{
+		addr &= 0x001F;
+		if (addr == 0x0010) addr = 0x0000;
+		if (addr == 0x0014) addr = 0x0004;
+		if (addr == 0x0018) addr = 0x0008;
+		if (addr == 0x001C) addr = 0x000C;
+		tblPalette[addr] = data;
+	}
+}
+
 
 void PPU2C02::clock()
 {
@@ -824,6 +883,28 @@ uint8_t PPU2C02::ppuRead(uint16_t addr, bool rdonly)
 	return data;
 }
 
+
+void PPU2C02::reset()
+{
+	fine_x = 0x00;
+	address_latch = 0x00;
+	ppu_data_buffer = 0x00;
+	scanline = 0;
+	cycle = 0;
+	bg_next_tile_id = 0x00;
+	bg_next_tile_attrib = 0x00;
+	bg_next_tile_lsb = 0x00;
+	bg_next_tile_msb = 0x00;
+	bg_shifter_pattern_lo = 0x0000;
+	bg_shifter_pattern_hi = 0x0000;
+	bg_shifter_attrib_lo = 0x0000;
+	bg_shifter_attrib_hi = 0x0000;
+	status.reg = 0x00;
+	mask.reg = 0x00;
+	control.reg = 0x00;
+	vram_addr.reg = 0x0000;
+	tram_addr.reg = 0x0000;
+}
 
 
 olc::Pixel& PPU2C02::GetColourFromPaletteRam(uint8_t palette, uint8_t pixel)
