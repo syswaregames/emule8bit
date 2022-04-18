@@ -47,6 +47,8 @@ public:
 	bool bEmulationRun = false;
 	float fResidualTime = 0.0f;
 
+	uint8_t nSelectedPalette = 0x00;
+
 	std::string hex(uint32_t n, uint8_t d)
 	{
 		std::string s(d, '0');
@@ -192,7 +194,18 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{	
-		Clear(olc::DARK_BLUE);
+		Clear(olc::DARK_CYAN);
+
+		// Sneaky peek of controller input in next video! ;P
+		nes.controller[0] = 0x00;
+		nes.controller[0] |= GetKey(olc::Key::X).bHeld ? 0x80 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::Z).bHeld ? 0x40 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::A).bHeld ? 0x20 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::S).bHeld ? 0x10 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::UP).bHeld ? 0x08 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::DOWN).bHeld ? 0x04 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::LEFT).bHeld ? 0x02 : 0x00;
+		nes.controller[0] |= GetKey(olc::Key::RIGHT).bHeld ? 0x01 : 0x00;
 
 		if (bEmulationRun)
 		{
@@ -231,48 +244,31 @@ public:
 		}
 
 		if (GetKey(olc::Key::SPACE).bPressed) bEmulationRun = !bEmulationRun;
-		if (GetKey(olc::Key::R).bPressed) nes.reset();		
+		if (GetKey(olc::Key::R).bPressed) nes.reset();	
+
+		if (GetKey(olc::Key::P).bPressed) (++nSelectedPalette) &= 0x07;	
 
 		DrawCpu(516, 2);
 		DrawCode(516, 72, 26);
 
+		
+
+		// Draw Palettes & Pattern Tables ==============================================
+		const int nSwatchSize = 6;
+		for (int p = 0; p < 8; p++) // For each palette
+			for(int s = 0; s < 4; s++) // For each index
+				FillRect(516 + p * (nSwatchSize * 5) + s * nSwatchSize, 340, 
+					nSwatchSize, nSwatchSize, nes.ppu.GetColourFromPaletteRam(p, s));
+		
+		// Draw selection reticule around selected palette
+		DrawRect(516 + nSelectedPalette * (nSwatchSize * 5) - 1, 339, (nSwatchSize * 4), nSwatchSize, olc::WHITE);
+
+		// Generate Pattern Tables
+		DrawSprite(516, 348, &nes.ppu.GetPatternTable(0, nSelectedPalette));
+		DrawSprite(648, 348, &nes.ppu.GetPatternTable(1, nSelectedPalette));
+
+		// Draw rendered output ========================================================
 		DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
-		return true;
-
-
-
-		/*
-		Runs for the board simulator
-		if (GetKey(olc::Key::SPACE).bPressed)
-		{
-			do
-			{
-				nes.cpu.clock();
-			} 
-			while (!nes.cpu.complete());
-		}
-
-		if (GetKey(olc::Key::R).bPressed)
-			nes.cpu.reset();
-
-		if (GetKey(olc::Key::I).bPressed)
-			nes.cpu.irq();
-
-		if (GetKey(olc::Key::N).bPressed)
-			nes.cpu.nmi();
-
-		// Draw Ram Page 0x00		
-		DrawRam(2, 2, 0x0000, 16, 16);
-		DrawRam(2, 182, 0x8000, 16, 16);
-		DrawCpu(448, 2);
-		DrawCode(448, 72, 26);
-
-
-		DrawString(10, 370, "SPACE = Step Instruction    R = RESET    I = IRQ    N = NMI");
-
-		DrawString(10, 380, "Sysware Emule Nes 8 Bit ", olc::RED);
-		*/
-
 		return true;
 	}
 };

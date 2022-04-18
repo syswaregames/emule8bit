@@ -25,6 +25,8 @@ class Mapper
 	virtual bool ppuMapRead(uint16_t addr, uint32_t &mapped_addr)	 = 0;
 	virtual bool ppuMapWrite(uint16_t addr, uint32_t &mapped_addr)	 = 0;
 
+    virtual void reset() = 0;
+
     protected:
 	// These are stored locally as many of the mappers require this information
 	uint8_t nPRGBanks = 0;

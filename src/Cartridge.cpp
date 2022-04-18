@@ -62,9 +62,19 @@ Cartridge::Cartridge(const std::string& sFileName)
 			ifs.read((char*)vPRGMemory.data(), vPRGMemory.size());
 
 			nCHRBanks = header.chr_rom_chunks;
-			vCHRMemory.resize(nCHRBanks * 8192);
+			if (nCHRBanks == 0)
+			{
+				// Create CHR RAM
+				vCHRMemory.resize(8192);
+			}
+			else
+			{
+				// Allocate for ROM
+				vCHRMemory.resize(nCHRBanks * 8192);
+			}
 			ifs.read((char*)vCHRMemory.data(), vCHRMemory.size());
 		}
+
 
 		if (nFileType == 2)
 		{
@@ -145,6 +155,14 @@ bool Cartridge::ppuWrite(uint16_t addr, uint8_t data)
 	}
 	else
 		return false;
+}
+
+void Cartridge::reset()
+{
+	// Note: This does not reset the ROM contents,
+	// but does reset the mapper.
+	if (pMapper != nullptr)
+		pMapper->reset();
 }
 
 

@@ -32,11 +32,15 @@ public:
     // The Cartridge or "GamePak"
 	std::shared_ptr<Cartridge> cart;
 
-    // CPU RAM 
-    // std::array<uint8_t, 2048> cpuRam; // 2kb RAM
-   
+    // CPU RAM 2kb
+    //std::array<uint8_t, 2048> cpuRam; // 2kb RAM
+    uint8_t cpuRam[2048];
+
     // Fake RAM for Board View Simulator
-	std::array<uint8_t, 64 * 1024> cpuRam; // 65kb
+	//std::array<uint8_t, 64 * 1024> cpuRam; // 65kb
+
+    // Controllers
+	uint8_t controller[2];
 
 public:     
     // Bus Read & Write
@@ -51,4 +55,7 @@ public:
 private:
 	// A count of how many clocks have passed
 	uint32_t nSystemClockCounter = 0;
+
+    // Internal cache of controller state
+	uint8_t controller_state[2];
 };

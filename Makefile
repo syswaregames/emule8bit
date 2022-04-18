@@ -9,7 +9,9 @@
 ## -lpthread
 
 # define the Cpp compiler to use
-CXX = g++ -v
+
+## -v
+CXX = g++ 
 
 # define any compile-time flags
 CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -I/opt/X11/include -L/opt/X11/lib -lX11 -lGL -lpng 
