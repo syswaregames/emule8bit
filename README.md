@@ -15,3 +15,8 @@ PPU - Pallet
 ![image](https://user-images.githubusercontent.com/35966031/163748646-908f9416-7203-49ec-8c9d-06626607c56b.png)
 
 
+NES Resolution 256 -> X  Pixels
+                ^
+                | 240 Y
+
+        
