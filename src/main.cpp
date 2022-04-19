@@ -177,8 +177,14 @@ public:
 		nes.cpu.reset();
 		*/
 
+		
 		// Load the cartridge
-		cart = std::make_shared<Cartridge>("nestest.nes");
+		
+		//cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
+		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
+		cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
+		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
+		// cart = std::make_shared<Cartridge>("Roms/nestest.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
 
 		// Inser into NES
 		nes.insertCartridge(cart);
@@ -257,7 +263,7 @@ public:
 		const int nSwatchSize = 6;
 		for (int p = 0; p < 8; p++) // For each palette
 			for(int s = 0; s < 4; s++) // For each index
-				FillRect(516 + p * (nSwatchSize * 5) + s * nSwatchSize, 340, 
+				FillRect(416 + p * (nSwatchSize * 5) + s * nSwatchSize, 340, 
 					nSwatchSize, nSwatchSize, nes.ppu.GetColourFromPaletteRam(p, s));
 		
 		// Draw selection reticule around selected palette
@@ -265,10 +271,12 @@ public:
 
 		// Generate Pattern Tables
 		DrawSprite(516, 348, &nes.ppu.GetPatternTable(0, nSelectedPalette));
-		DrawSprite(648, 348, &nes.ppu.GetPatternTable(1, nSelectedPalette));
+		DrawSprite(548, 348, &nes.ppu.GetPatternTable(1, nSelectedPalette));
 
 		// Draw rendered output ========================================================
-		DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
+		 DrawSprite(0, 0, &nes.ppu.GetScreen(), 2);
+
+
 		return true;
 	}
 };
@@ -282,7 +290,8 @@ int main(int argc, char *argv[])
 	std::cout << "Patrick Carvalho - 2022" << std::endl;	
 
 	Emule emule;
-	emule.Construct(680, 480, 2, 2);
+	//emule.Construct(680, 480, 2, 2);
+	emule.Construct(720, 480, 2, 2);
 	emule.Start();
 
 	return 0;

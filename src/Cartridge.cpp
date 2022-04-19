@@ -92,7 +92,7 @@ Cartridge::Cartridge(const std::string& sFileName)
 	}
     else
     {
-        std::cout << "File NOT Open" << std::endl;        
+        std::cout << "File NOT Open " << sFileName <<  std::endl;        
     }
 
 }
