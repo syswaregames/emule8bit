@@ -47,6 +47,9 @@ PPU - Palett
 
 ![image](https://user-images.githubusercontent.com/35966031/163748646-908f9416-7203-49ec-8c9d-06626607c56b.png)
 
+![image](https://user-images.githubusercontent.com/35966031/163905346-9dd2465c-9855-4aae-9d02-597502853362.png)
+
+
 
 NES Resolution 256 -> X  Pixels
                 ^
