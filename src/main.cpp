@@ -134,8 +134,9 @@ public:
 		// Load Program (assembled at https://www.masswerk.at/6502/assembler.html)		
 	
 		// Load the cartridge		
-		//cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
+		// cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
 		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); 
+<<<<<<< HEAD
 		// cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/mario3.nes"); 
@@ -143,6 +144,12 @@ public:
 
 		cart = std::make_shared<Cartridge>("Roms/pacman.nes"); 
 
+=======
+		 cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/mario3.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/nestest.nes")
+>>>>>>> fadecde689984a20f6f314ba3c698e5b085f4f47
 	
 
 		// Inser into NES
