@@ -131,60 +131,16 @@ public:
 	bool OnUserCreate() override
 	{
 		
-		// Load Program (assembled at https://www.masswerk.at/6502/assembler.html)
-		/*
-			*=$8000
-			LDX #10
-			STX $0000
-			LDX #3
-			STX $0001
-			LDY $0000
-			LDA #0
-			CLC
-			loop
-			ADC $0001
-			DEY
-			BNE loop
-			STA $0002
-			NOP
-			NOP
-			NOP
-		*/
-
+		// Load Program (assembled at https://www.masswerk.at/6502/assembler.html)		
 	
-		/*
-		// Convert hex string into bytes for RAM
-		std::stringstream ss;
-		ss << "A2 0A 8E 00 00 A2 03 8E 01 00 AC 00 00 A9 00 18 6D 01 00 88 D0 FA 8D 02 00 EA EA EA";
-		uint16_t nOffset = 0x8000;
-		while (!ss.eof())
-		{
-			std::string b;
-			ss >> b;
-			nes.cpuRam[nOffset++] = (uint8_t)std::stoul(b, nullptr, 16);
-		}
-
-		// Set Reset Vector
-		nes.cpuRam[0xFFFC] = 0x00;
-		nes.cpuRam[0xFFFD] = 0x80;
-
-		// Dont forget to set IRQ and NMI vectors if you want to play with those
-				
-		// Extract dissassembly
-		mapAsm = nes.cpu.disassemble(0x0000, 0xFFFF);
-
-		// Reset
-		nes.cpu.reset();
-		*/
-
-		
-		// Load the cartridge
-		
+		// Load the cartridge		
 		//cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
-		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
-		cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
-		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
-		// cart = std::make_shared<Cartridge>("Roms/nestest.nes"); // "SuperMarioBros.nes"); // "nestest.nes");
+		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); 
+		 cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/mario3.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/nestest.nes")
+		;
 
 		// Inser into NES
 		nes.insertCartridge(cart);
@@ -255,8 +211,20 @@ public:
 		if (GetKey(olc::Key::P).bPressed) (++nSelectedPalette) &= 0x07;	
 
 		DrawCpu(516, 2);
-		DrawCode(516, 72, 26);
+		// DrawCode(516, 72, 26);
 
+
+		
+		// Draw OAM Contents (first 26 out of 64) ======================================
+		for (int i = 0; i < 26; i++)
+		{
+			std::string s = hex(i, 2) + ": (" + std::to_string(nes.ppu.pOAM[i * 4 + 3])
+				+ ", " + std::to_string(nes.ppu.pOAM[i * 4 + 0]) + ") "
+				+ "ID: " + hex(nes.ppu.pOAM[i * 4 + 1], 2) +
+				+" AT: " + hex(nes.ppu.pOAM[i * 4 + 2], 2);
+			DrawString(516, 72 + i * 10, s);
+		}
+		
 		
 
 		// Draw Palettes & Pattern Tables ==============================================
