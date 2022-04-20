@@ -32,7 +32,7 @@ Cartridge::Cartridge(const std::string& sFileName)
 
 	if (ifs.is_open())
 	{
-        std::cout << "File is Open" << std::endl;
+        std::cout << "File is Open " << sFileName << std::endl;
         
         
 		// Read file header

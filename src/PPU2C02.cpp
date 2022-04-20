@@ -318,6 +318,156 @@ void PPU2C02::ppuWrite(uint16_t addr, uint8_t data)
 }
 
 
+olc::Sprite& PPU2C02::GetScreen()
+{
+ 
+    return sprScreen;
+}
+
+olc::Sprite& PPU2C02::GetNameTable(uint8_t i)
+{
+	// As of now unused, but a placeholder for nametable visualisation in teh future
+	return sprNameTable[i];
+}
+
+olc::Sprite& PPU2C02::GetPatternTable(uint8_t i, uint8_t palette)
+{
+    // Tile is 8 * 8 bitmap, 
+    // 2 bits per pixel, (16 bytes)
+    for (uint16_t nTileY = 0; nTileY < 16; nTileY++) 
+    {
+        for (uint16_t nTileX = 0; nTileX < 16; nTileX++)
+        {
+            // Convert the 2D tile coordinate into a 1D offset into the pattern
+			// table memory.
+			uint16_t nOffset = nTileY * 256 + nTileX * 16;
+
+            for (uint16_t row = 0; row < 8; row++)
+            {
+                uint8_t tile_lsb = ppuRead(i * 0x1000 + nOffset + row + 0x0000);
+				uint8_t tile_msb = ppuRead(i * 0x1000 + nOffset + row + 0x0008);
+
+                for (uint16_t col = 0; col < 8; col++)
+                {
+                    uint8_t pixel = ((tile_lsb & 0x01) << 1) | (tile_msb & 0x01);
+                    tile_lsb >>= 1; tile_msb >>= 1;
+  
+                     sprPatternTable[i].SetPixel
+                     (
+                        nTileX * 8 + (7 - col),
+                        nTileY * 8 + row,
+                        
+                        GetColourFromPaletteRam(palette, pixel)
+                     );
+                }
+            }
+
+        }
+    }
+
+    // sprite representing the pattern table
+	return sprPatternTable[i];
+}
+
+uint8_t PPU2C02::ppuRead(uint16_t addr, bool rdonly)
+{
+	uint8_t data = 0x00;
+	addr &= 0x3FFF;
+
+	if (cart->ppuRead(addr, data))
+	{
+
+	}
+	else if (addr >= 0x0000 && addr <= 0x1FFF)
+	{
+		// If the cartridge cant map the address, have
+		// a physical location ready here
+		data = tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF];
+	}
+	else if (addr >= 0x2000 && addr <= 0x3EFF)
+	{
+		addr &= 0x0FFF;
+
+		if (cart->mirror == Cartridge::MIRROR::VERTICAL)
+		{
+			// Vertical
+			if (addr >= 0x0000 && addr <= 0x03FF)
+				data = tblName[0][addr & 0x03FF];
+			if (addr >= 0x0400 && addr <= 0x07FF)
+				data = tblName[1][addr & 0x03FF];
+			if (addr >= 0x0800 && addr <= 0x0BFF)
+				data = tblName[0][addr & 0x03FF];
+			if (addr >= 0x0C00 && addr <= 0x0FFF)
+				data = tblName[1][addr & 0x03FF];
+		}
+		else if (cart->mirror == Cartridge::MIRROR::HORIZONTAL)
+		{
+			// Horizontal
+			if (addr >= 0x0000 && addr <= 0x03FF)
+				data = tblName[0][addr & 0x03FF];
+			if (addr >= 0x0400 && addr <= 0x07FF)
+				data = tblName[0][addr & 0x03FF];
+			if (addr >= 0x0800 && addr <= 0x0BFF)
+				data = tblName[1][addr & 0x03FF];
+			if (addr >= 0x0C00 && addr <= 0x0FFF)
+				data = tblName[1][addr & 0x03FF];
+		}
+	}
+	else if (addr >= 0x3F00 && addr <= 0x3FFF)
+	{
+		addr &= 0x001F;
+		if (addr == 0x0010) addr = 0x0000;
+		if (addr == 0x0014) addr = 0x0004;
+		if (addr == 0x0018) addr = 0x0008;
+		if (addr == 0x001C) addr = 0x000C;
+		data = tblPalette[addr] & (mask.grayscale ? 0x30 : 0x3F);
+	}
+
+	return data;
+}
+
+
+void PPU2C02::reset()
+{
+	fine_x = 0x00;
+	address_latch = 0x00;
+	ppu_data_buffer = 0x00;
+	scanline = 0;
+	cycle = 0;
+	bg_next_tile_id = 0x00;
+	bg_next_tile_attrib = 0x00;
+	bg_next_tile_lsb = 0x00;
+	bg_next_tile_msb = 0x00;
+	bg_shifter_pattern_lo = 0x0000;
+	bg_shifter_pattern_hi = 0x0000;
+	bg_shifter_attrib_lo = 0x0000;
+	bg_shifter_attrib_hi = 0x0000;
+	status.reg = 0x00;
+	mask.reg = 0x00;
+	control.reg = 0x00;
+	vram_addr.reg = 0x0000;
+	tram_addr.reg = 0x0000;
+}
+
+
+olc::Pixel& PPU2C02::GetColourFromPaletteRam(uint8_t palette, uint8_t pixel)
+{
+    // This is a convenience function that takes a specified palette and pixel
+	// index and returns the appropriate screen colour.
+	// "0x3F00"       - Offset into PPU addressable range where palettes are stored
+	// "palette << 2" - Each palette is 4 bytes in size
+	// "pixel"        - Each pixel index is either 0, 1, 2 or 3
+	// "& 0x3F"       - Stops us reading beyond the bounds of the palScreen array
+
+    return palScreen[ppuRead(0x3F00 + (palette << 2) + pixel) & 0x3F];
+
+    // Note: We dont access tblPalette directly here, instead we know that ppuRead()
+	// will map the address onto the seperate small RAM attached to the PPU bus.
+}
+
+
+
+
 void PPU2C02::clock()
 {
 	// As we progress through scanlines and cycles, the PPU is effectively
@@ -491,12 +641,32 @@ void PPU2C02::clock()
 			bg_shifter_attrib_lo <<= 1;
 			bg_shifter_attrib_hi <<= 1;
 		}
+
+		if (mask.render_sprites && cycle >= 1 && cycle < 258)
+		{
+			for (int i = 0; i < sprite_count; i++)
+			{
+				if (spriteScanline[i].x > 0)
+				{
+					spriteScanline[i].x--;
+				}
+				else
+				{
+					sprite_shifter_pattern_lo[i] <<= 1;
+					sprite_shifter_pattern_hi[i] <<= 1;
+				}
+			}
+		}
 	};
+
+	
 
 	// All but 1 of the secanlines is visible to the user. The pre-render scanline
 	// at -1, is used to configure the "shifters" for the first visible scanline, 0.
 	if (scanline >= -1 && scanline < 240)
 	{		
+		// Background Rendering ======================================================
+
 		if (scanline == 0 && cycle == 0)
 		{
 			// "Odd Frame" cycle skip
@@ -507,6 +677,19 @@ void PPU2C02::clock()
 		{
 			// Effectively start of new frame, so clear vertical blank flag
 			status.vertical_blank = 0;
+
+			// Clear sprite overflow flag
+			status.sprite_overflow = 0;
+			
+			// Clear the sprite zero hit flag
+			status.sprite_zero_hit = 0;
+
+			// Clear Shifters
+			for (int i = 0; i < 8; i++)
+			{
+				sprite_shifter_pattern_lo[i] = 0;
+				sprite_shifter_pattern_hi[i] = 0;
+			}
 		}
 
 
@@ -697,6 +880,217 @@ void PPU2C02::clock()
 			// End of vertical blank period so reset the Y address ready for rendering
 			TransferAddressY();
 		}
+
+
+		// Foreground Rendering ========================================================
+		// I'm gonna cheat a bit here, which may reduce compatibility, but greatly
+		// simplifies delivering an intuitive understanding of what exactly is going
+		// on. The PPU loads sprite information successively during the region that
+		// background tiles are not being drawn. Instead, I'm going to perform
+		// all sprite evaluation in one hit. THE NES DOES NOT DO IT LIKE THIS! This makes
+		// it easier to see the process of sprite evaluation.
+		if (cycle == 257 && scanline >= 0)
+		{
+			// We've reached the end of a visible scanline. It is now time to determine
+			// which sprites are visible on the next scanline, and preload this info
+			// into buffers that we can work with while the scanline scans the row.
+
+			// Firstly, clear out the sprite memory. This memory is used to store the
+			// sprites to be rendered. It is not the OAM.
+			std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));
+
+			// The NES supports a maximum number of sprites per scanline. Nominally
+			// this is 8 or fewer sprites. This is why in some games you see sprites
+			// flicker or disappear when the scene gets busy.
+			sprite_count = 0;
+
+			// Secondly, clear out any residual information in sprite pattern shifters
+			for (uint8_t i = 0; i < 8; i++)
+			{
+				sprite_shifter_pattern_lo[i] = 0;
+				sprite_shifter_pattern_hi[i] = 0;
+			}
+
+			// Thirdly, Evaluate which sprites are visible in the next scanline. We need
+			// to iterate through the OAM until we have found 8 sprites that have Y-positions
+			// and heights that are within vertical range of the next scanline. Once we have
+			// found 8 or exhausted the OAM we stop. Now, notice I count to 9 sprites. This
+			// is so I can set the sprite overflow flag in the event of there being > 8 sprites.
+			uint8_t nOAMEntry = 0;
+
+			// New set of sprites. Sprite zero may not exist in the new set, so clear this
+			// flag.
+			bSpriteZeroHitPossible = false;
+
+			while (nOAMEntry < 64 && sprite_count < 9)
+			{
+				// Note the conversion to signed numbers here
+				int16_t diff = ((int16_t)scanline - (int16_t)OAM[nOAMEntry].y);
+
+				// If the difference is positive then the scanline is at least at the
+				// same height as the sprite, so check if it resides in the sprite vertically
+				// depending on the current "sprite height mode"
+				// FLAGGED
+				
+				if (diff >= 0 && diff < (control.sprite_size ? 16 : 8))
+				{
+					// Sprite is visible, so copy the attribute entry over to our
+					// scanline sprite cache. Ive added < 8 here to guard the array
+					// being written to.
+					if (sprite_count < 8)
+					{
+						// Is this sprite sprite zero?
+						if (nOAMEntry == 0)
+						{
+							// It is, so its possible it may trigger a 
+							// sprite zero hit when drawn
+							bSpriteZeroHitPossible = true;
+						}
+
+						memcpy(&spriteScanline[sprite_count], &OAM[nOAMEntry], sizeof(sObjectAttributeEntry));
+						sprite_count++;
+					}				
+				}
+
+				nOAMEntry++;
+			} // End of sprite evaluation for next scanline
+
+			// Set sprite overflow flag
+			status.sprite_overflow = (sprite_count > 8);
+
+			// Now we have an array of the 8 visible sprites for the next scanline. By 
+			// the nature of this search, they are also ranked in priority, because
+			// those lower down in the OAM have the higher priority.
+
+			// We also guarantee that "Sprite Zero" will exist in spriteScanline[0] if
+			// it is evaluated to be visible. 
+		}
+
+		if (cycle == 340)
+		{
+			// Now we're at the very end of the scanline, I'm going to prepare the 
+			// sprite shifters with the 8 or less selected sprites.
+
+			for (uint8_t i = 0; i < sprite_count; i++)
+			{
+				// We need to extract the 8-bit row patterns of the sprite with the
+				// correct vertical offset. The "Sprite Mode" also affects this as
+				// the sprites may be 8 or 16 rows high. Additionally, the sprite
+				// can be flipped both vertically and horizontally. So there's a lot
+				// going on here :P
+
+				uint8_t sprite_pattern_bits_lo, sprite_pattern_bits_hi;
+				uint16_t sprite_pattern_addr_lo, sprite_pattern_addr_hi;
+
+				// Determine the memory addresses that contain the byte of pattern data. We
+				// only need the lo pattern address, because the hi pattern address is always
+				// offset by 8 from the lo address.
+				if (!control.sprite_size)
+				{
+					// 8x8 Sprite Mode - The control register determines the pattern table
+					if (!(spriteScanline[i].attribute & 0x80))
+					{
+						// Sprite is NOT flipped vertically, i.e. normal    
+						sprite_pattern_addr_lo = 
+						  (control.pattern_sprite << 12  )  // Which Pattern Table? 0KB or 4KB offset
+						| (spriteScanline[i].id   << 4   )  // Which Cell? Tile ID * 16 (16 bytes per tile)
+						| (scanline - spriteScanline[i].y); // Which Row in cell? (0->7)
+												
+					}
+					else
+					{
+						// Sprite is flipped vertically, i.e. upside down
+						sprite_pattern_addr_lo = 
+						  (control.pattern_sprite << 12  )  // Which Pattern Table? 0KB or 4KB offset
+						| (spriteScanline[i].id   << 4   )  // Which Cell? Tile ID * 16 (16 bytes per tile)
+						| (7 - (scanline - spriteScanline[i].y)); // Which Row in cell? (7->0)
+					}
+
+				}
+				else
+				{
+					// 8x16 Sprite Mode - The sprite attribute determines the pattern table
+					if (!(spriteScanline[i].attribute & 0x80))
+					{
+						// Sprite is NOT flipped vertically, i.e. normal
+						if (scanline - spriteScanline[i].y < 8)
+						{
+							// Reading Top half Tile
+							sprite_pattern_addr_lo = 
+							  ((spriteScanline[i].id & 0x01)      << 12)  // Which Pattern Table? 0KB or 4KB offset
+							| ((spriteScanline[i].id & 0xFE)      << 4 )  // Which Cell? Tile ID * 16 (16 bytes per tile)
+							| ((scanline - spriteScanline[i].y) & 0x07 ); // Which Row in cell? (0->7)
+						}
+						else
+						{
+							// Reading Bottom Half Tile
+							sprite_pattern_addr_lo = 
+							  ( (spriteScanline[i].id & 0x01)      << 12)  // Which Pattern Table? 0KB or 4KB offset
+							| (((spriteScanline[i].id & 0xFE) + 1) << 4 )  // Which Cell? Tile ID * 16 (16 bytes per tile)
+							| ((scanline - spriteScanline[i].y) & 0x07  ); // Which Row in cell? (0->7)
+						}
+					}
+					else
+					{
+						// Sprite is flipped vertically, i.e. upside down
+						if (scanline - spriteScanline[i].y < 8)
+						{
+							// Reading Top half Tile
+							sprite_pattern_addr_lo = 
+							  ( (spriteScanline[i].id & 0x01)      << 12)    // Which Pattern Table? 0KB or 4KB offset
+							| (((spriteScanline[i].id & 0xFE) + 1) << 4 )    // Which Cell? Tile ID * 16 (16 bytes per tile)
+							| (7 - (scanline - spriteScanline[i].y) & 0x07); // Which Row in cell? (0->7)
+						}
+						else
+						{
+							// Reading Bottom Half Tile
+							sprite_pattern_addr_lo = 
+							  ((spriteScanline[i].id & 0x01)       << 12)    // Which Pattern Table? 0KB or 4KB offset
+							| ((spriteScanline[i].id & 0xFE)       << 4 )    // Which Cell? Tile ID * 16 (16 bytes per tile)
+							| (7 - (scanline - spriteScanline[i].y) & 0x07); // Which Row in cell? (0->7)
+						}
+					}
+				}
+
+				// Phew... XD I'm absolutely certain you can use some fantastic bit 
+				// manipulation to reduce all of that to a few one liners, but in this
+				// form it's easy to see the processes required for the different
+				// sizes and vertical orientations
+
+				// Hi bit plane equivalent is always offset by 8 bytes from lo bit plane
+				sprite_pattern_addr_hi = sprite_pattern_addr_lo + 8;
+
+				// Now we have the address of the sprite patterns, we can read them
+				sprite_pattern_bits_lo = ppuRead(sprite_pattern_addr_lo);
+				sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi);
+
+				// If the sprite is flipped horizontally, we need to flip the 
+				// pattern bytes. 
+				if (spriteScanline[i].attribute & 0x40)
+				{
+					// This little lambda function "flips" a byte
+					// so 0b11100000 becomes 0b00000111. It's very
+					// clever, and stolen completely from here:
+					// https://stackoverflow.com/a/2602885
+					auto flipbyte = [](uint8_t b)
+					{
+						b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+						b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+						b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+						return b;
+					};
+
+					// Flip Patterns Horizontally
+					sprite_pattern_bits_lo = flipbyte(sprite_pattern_bits_lo);
+					sprite_pattern_bits_hi = flipbyte(sprite_pattern_bits_hi);
+				}
+
+				// Finally! We can load the pattern into our sprite shift registers
+				// ready for rendering on the next scanline
+				sprite_shifter_pattern_lo[i] = sprite_pattern_bits_lo;
+				sprite_shifter_pattern_hi[i] = sprite_pattern_bits_hi;
+			}
+		}
 	}
 
 	if (scanline == 240)
@@ -723,9 +1117,9 @@ void PPU2C02::clock()
 
 
 
-	// Composition - We now have background pixel information for this cycle
-	// At this point we are only interested in background
+	// Composition - We now have background & foreground pixel information for this cycle
 
+	// Background =============================================================
 	uint8_t bg_pixel = 0x00;   // The 2-bit pixel to be rendered
 	uint8_t bg_palette = 0x00; // The 3-bit index of the palette the pixel indexes
 
@@ -755,14 +1149,136 @@ void PPU2C02::clock()
 		bg_palette = (bg_pal1 << 1) | bg_pal0;
 	}
 
+	// Foreground =============================================================
+	uint8_t fg_pixel = 0x00;   // The 2-bit pixel to be rendered
+	uint8_t fg_palette = 0x00; // The 3-bit index of the palette the pixel indexes
+	uint8_t fg_priority = 0x00;// A bit of the sprite attribute indicates if its
+							   // more important than the background
+	if (mask.render_sprites)
+	{
+		// Iterate through all sprites for this scanline. This is to maintain
+		// sprite priority. As soon as we find a non transparent pixel of
+		// a sprite we can abort
+
+		bSpriteZeroBeingRendered = false;
+
+		for (uint8_t i = 0; i < sprite_count; i++)
+		{
+			// Scanline cycle has "collided" with sprite, shifters taking over
+			if (spriteScanline[i].x == 0) 
+			{
+				// Note Fine X scrolling does not apply to sprites, the game
+				// should maintain their relationship with the background. So
+				// we'll just use the MSB of the shifter
+				
+				// Determine the pixel value...
+				uint8_t fg_pixel_lo = (sprite_shifter_pattern_lo[i] & 0x80) > 0;
+				uint8_t fg_pixel_hi = (sprite_shifter_pattern_hi[i] & 0x80) > 0;
+				fg_pixel = (fg_pixel_hi << 1) | fg_pixel_lo;
+
+				// Extract the palette from the bottom two bits. Recall
+				// that foreground palettes are the latter 4 in the 
+				// palette memory.
+				fg_palette = (spriteScanline[i].attribute & 0x03) + 0x04;
+				fg_priority = (spriteScanline[i].attribute & 0x20) == 0;
+
+				// If pixel is not transparent, we render it, and dont
+				// bother checking the rest because the earlier sprites
+				// in the list are higher priority
+				if (fg_pixel != 0)
+				{
+					if (i == 0) // Is this sprite zero?
+					{
+						bSpriteZeroBeingRendered = true;
+					}
+
+					break;
+				}				
+			}
+		}		
+	}
+
+	// Now we have a background pixel and a foreground pixel. They need
+	// to be combined. It is possible for sprites to go behind background
+	// tiles that are not "transparent", yet another neat trick of the PPU
+	// that adds complexity for us poor emulator developers...
+
+	uint8_t pixel = 0x00;   // The FINAL Pixel...
+	uint8_t palette = 0x00; // The FINAL Palette...
+
+	if (bg_pixel == 0 && fg_pixel == 0)
+	{
+		// The background pixel is transparent
+		// The foreground pixel is transparent
+		// No winner, draw "background" colour
+		pixel = 0x00;
+		palette = 0x00;
+	}
+	else if (bg_pixel == 0 && fg_pixel > 0)
+	{
+		// The background pixel is transparent
+		// The foreground pixel is visible
+		// Foreground wins!
+		pixel = fg_pixel;
+		palette = fg_palette;
+	}
+	else if (bg_pixel > 0 && fg_pixel == 0)
+	{
+		// The background pixel is visible
+		// The foreground pixel is transparent
+		// Background wins!
+		pixel = bg_pixel;
+		palette = bg_palette;
+	}
+	else if (bg_pixel > 0 && fg_pixel > 0)
+	{
+		// The background pixel is visible
+		// The foreground pixel is visible
+		// Hmmm...
+		if (fg_priority)
+		{
+			// Foreground cheats its way to victory!
+			pixel = fg_pixel;
+			palette = fg_palette;
+		}
+		else
+		{
+			// Background is considered more important!
+			pixel = bg_pixel;
+			palette = bg_palette;
+		}
+
+		// Sprite Zero Hit detection
+		if (bSpriteZeroHitPossible && bSpriteZeroBeingRendered)
+		{
+			// Sprite zero is a collision between foreground and background
+			// so they must both be enabled
+			if (mask.render_background & mask.render_sprites)
+			{
+				// The left edge of the screen has specific switches to control
+				// its appearance. This is used to smooth inconsistencies when
+				// scrolling (since sprites x coord must be >= 0)
+				if (~(mask.render_background_left | mask.render_sprites_left))
+				{
+					if (cycle >= 9 && cycle < 258)
+					{
+						status.sprite_zero_hit = 1;
+					}
+				}
+				else
+				{
+					if (cycle >= 1 && cycle < 258)
+					{
+						status.sprite_zero_hit = 1;
+					}
+				}
+			}
+		}
+	}
 
 	// Now we have a final pixel colour, and a palette for this cycle
 	// of the current scanline. Let's at long last, draw that ^&%*er :P
-
-	sprScreen.SetPixel(cycle - 1, scanline, GetColourFromPaletteRam(bg_palette, bg_pixel));
-
-	// Fake some noise for now
-	//sprScreen.SetPixel(cycle - 1, scanline, palScreen[(rand() % 2) ? 0x3F : 0x30]);
+	sprScreen.SetPixel(cycle - 1, scanline, GetColourFromPaletteRam(palette, pixel));
 
 	// Advance renderer - it never stops, it's relentless
 	cycle++;
@@ -777,151 +1293,3 @@ void PPU2C02::clock()
 		}
 	}
 }
-
-olc::Sprite& PPU2C02::GetScreen()
-{
- 
-    return sprScreen;
-}
-
-olc::Sprite& PPU2C02::GetNameTable(uint8_t i)
-{
-	// As of now unused, but a placeholder for nametable visualisation in teh future
-	return sprNameTable[i];
-}
-
-olc::Sprite& PPU2C02::GetPatternTable(uint8_t i, uint8_t palette)
-{
-    // Tile is 8 * 8 bitmap, 
-    // 2 bits per pixel, (16 bytes)
-    for (uint16_t nTileY = 0; nTileY < 16; nTileY++) 
-    {
-        for (uint16_t nTileX = 0; nTileX < 16; nTileX++)
-        {
-            // Convert the 2D tile coordinate into a 1D offset into the pattern
-			// table memory.
-			uint16_t nOffset = nTileY * 256 + nTileX * 16;
-
-            for (uint16_t row = 0; row < 8; row++)
-            {
-                uint8_t tile_lsb = ppuRead(i * 0x1000 + nOffset + row + 0x0000);
-				uint8_t tile_msb = ppuRead(i * 0x1000 + nOffset + row + 0x0008);
-
-                for (uint16_t col = 0; col < 8; col++)
-                {
-                    uint8_t pixel = (tile_lsb & 0x01) + (tile_msb & 0x01);
-                    tile_lsb >>= 1; tile_msb >>= 1;
-  
-                     sprPatternTable[i].SetPixel
-                     (
-                        nTileX * 8 + (7 - col),
-                        nTileY * 8 + row,
-                        
-                        GetColourFromPaletteRam(palette, pixel)
-                     );
-                }
-            }
-
-        }
-    }
-
-    // sprite representing the pattern table
-	return sprPatternTable[i];
-}
-
-uint8_t PPU2C02::ppuRead(uint16_t addr, bool rdonly)
-{
-	uint8_t data = 0x00;
-	addr &= 0x3FFF;
-
-	if (cart->ppuRead(addr, data))
-	{
-
-	}
-	else if (addr >= 0x0000 && addr <= 0x1FFF)
-	{
-		// If the cartridge cant map the address, have
-		// a physical location ready here
-		data = tblPattern[(addr & 0x1000) >> 12][addr & 0x0FFF];
-	}
-	else if (addr >= 0x2000 && addr <= 0x3EFF)
-	{
-		addr &= 0x0FFF;
-
-		if (cart->mirror == Cartridge::MIRROR::VERTICAL)
-		{
-			// Vertical
-			if (addr >= 0x0000 && addr <= 0x03FF)
-				data = tblName[0][addr & 0x03FF];
-			if (addr >= 0x0400 && addr <= 0x07FF)
-				data = tblName[1][addr & 0x03FF];
-			if (addr >= 0x0800 && addr <= 0x0BFF)
-				data = tblName[0][addr & 0x03FF];
-			if (addr >= 0x0C00 && addr <= 0x0FFF)
-				data = tblName[1][addr & 0x03FF];
-		}
-		else if (cart->mirror == Cartridge::MIRROR::HORIZONTAL)
-		{
-			// Horizontal
-			if (addr >= 0x0000 && addr <= 0x03FF)
-				data = tblName[0][addr & 0x03FF];
-			if (addr >= 0x0400 && addr <= 0x07FF)
-				data = tblName[0][addr & 0x03FF];
-			if (addr >= 0x0800 && addr <= 0x0BFF)
-				data = tblName[1][addr & 0x03FF];
-			if (addr >= 0x0C00 && addr <= 0x0FFF)
-				data = tblName[1][addr & 0x03FF];
-		}
-	}
-	else if (addr >= 0x3F00 && addr <= 0x3FFF)
-	{
-		addr &= 0x001F;
-		if (addr == 0x0010) addr = 0x0000;
-		if (addr == 0x0014) addr = 0x0004;
-		if (addr == 0x0018) addr = 0x0008;
-		if (addr == 0x001C) addr = 0x000C;
-		data = tblPalette[addr] & (mask.grayscale ? 0x30 : 0x3F);
-	}
-
-	return data;
-}
-
-
-void PPU2C02::reset()
-{
-	fine_x = 0x00;
-	address_latch = 0x00;
-	ppu_data_buffer = 0x00;
-	scanline = 0;
-	cycle = 0;
-	bg_next_tile_id = 0x00;
-	bg_next_tile_attrib = 0x00;
-	bg_next_tile_lsb = 0x00;
-	bg_next_tile_msb = 0x00;
-	bg_shifter_pattern_lo = 0x0000;
-	bg_shifter_pattern_hi = 0x0000;
-	bg_shifter_attrib_lo = 0x0000;
-	bg_shifter_attrib_hi = 0x0000;
-	status.reg = 0x00;
-	mask.reg = 0x00;
-	control.reg = 0x00;
-	vram_addr.reg = 0x0000;
-	tram_addr.reg = 0x0000;
-}
-
-
-olc::Pixel& PPU2C02::GetColourFromPaletteRam(uint8_t palette, uint8_t pixel)
-{
-    // This is a convenience function that takes a specified palette and pixel
-	// index and returns the appropriate screen colour.
-	// "0x3F00"       - Offset into PPU addressable range where palettes are stored
-	// "palette << 2" - Each palette is 4 bytes in size
-	// "pixel"        - Each pixel index is either 0, 1, 2 or 3
-	// "& 0x3F"       - Stops us reading beyond the bounds of the palScreen array
-
-    return palScreen[ppuRead(0x3F00 + (palette << 2) + pixel) & 0x3F];
-
-    // Note: We dont access tblPalette directly here, instead we know that ppuRead()
-	// will map the address onto the seperate small RAM attached to the PPU bus.
-}
-

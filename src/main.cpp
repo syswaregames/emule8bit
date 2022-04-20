@@ -136,8 +136,8 @@ public:
 		// Load the cartridge		
 		//cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
 		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); 
-		 cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
-		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
+		 cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/mario3.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/nestest.nes")
 		;
@@ -212,8 +212,6 @@ public:
 
 		DrawCpu(516, 2);
 		// DrawCode(516, 72, 26);
-
-
 		
 		// Draw OAM Contents (first 26 out of 64) ======================================
 		for (int i = 0; i < 26; i++)
@@ -224,14 +222,12 @@ public:
 				+" AT: " + hex(nes.ppu.pOAM[i * 4 + 2], 2);
 			DrawString(516, 72 + i * 10, s);
 		}
-		
-		
 
 		// Draw Palettes & Pattern Tables ==============================================
 		const int nSwatchSize = 6;
 		for (int p = 0; p < 8; p++) // For each palette
 			for(int s = 0; s < 4; s++) // For each index
-				FillRect(416 + p * (nSwatchSize * 5) + s * nSwatchSize, 340, 
+				FillRect(516 + p * (nSwatchSize * 5) + s * nSwatchSize, 340, 
 					nSwatchSize, nSwatchSize, nes.ppu.GetColourFromPaletteRam(p, s));
 		
 		// Draw selection reticule around selected palette
