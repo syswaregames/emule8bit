@@ -137,10 +137,13 @@ public:
 		//cart = std::make_shared<Cartridge>("Roms/Bomberman.nes");
 		// cart = std::make_shared<Cartridge>("Roms/BatmanReturns.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/DonkeyKong.nes"); 
-		 cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
+		// cart = std::make_shared<Cartridge>("Roms/mario.nes"); 
 		// cart = std::make_shared<Cartridge>("Roms/mario3.nes"); 
-		// cart = std::make_shared<Cartridge>("Roms/nestest.nes")
-		;
+		// cart = std::make_shared<Cartridge>("Roms/nestest.nes");
+
+		cart = std::make_shared<Cartridge>("Roms/pacman.nes"); 
+
+	
 
 		// Inser into NES
 		nes.insertCartridge(cart);
