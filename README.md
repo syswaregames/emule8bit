@@ -66,3 +66,7 @@ Color-wise, the NES used a palette of 56 colors across the board for all games. 
 How many colors did NES sprites have? 4 colors
 Number of Colors Per Sprite
 Sprites on the NES were limited to 4 colors (or 3 colors + transparency)
+
+
+original 1985 Front-Loading NES motherboard.
+https://github.com/Redherring32/OpenTendo
